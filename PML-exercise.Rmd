@@ -1,0 +1,54 @@
+Practical Machine Learning - Predicting type of Exercise with Random Forests
+============================================================================
+setwd("C:/Users/Ines/Desktop/8 Practical Machine Learning/Coursework")
+
+training<-read.csv("pml-training.csv", header=TRUE)
+testing<-read.csv("pml-testing.csv", header=TRUE)
+
+# Modelling data 
+
+# Testing data
+# 20 cases for prediction validation 
+# Removal of columns with NAs
+testdata<-testing[,c(2,8:11,37:49,60:68,84:86,102,113:124,140,151:159)]
+
+# Selection of matching columns from training
+data1<-training[,names(testdata)]
+data<-cbind(data1,training$classe)
+
+# Selection of complete cases of training dataset
+data<-data[complete.cases(data), ]
+names(data)<-gsub("training\\$","",names(data))
+
+#Partition of dataset into training and testing sets
+require(caret)
+set.seed(1759)
+inTrain = createDataPartition(y=data$classe, p = 0.6,list=FALSE)
+train = data[inTrain,]
+test = data[-inTrain,]
+
+
+# Model Fitting
+modFit.RF<-train(classe~., data=train, method="rf",prox=TRUE)
+
+# Model Testing
+
+pred.RF<-predict(modFit.RF, test)
+test$pred.RFright<-pred.RF==test$classe
+test$predicted<-pred.RF
+matrix.RF<-confusionMatrix(pred.RF,test$classe)
+matrix.RF
+
+# Prediction for answer submission
+pred.RF<-predict(modFit.RF, testdata)
+answers<-pred.RF
+
+# Text files for submission
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)

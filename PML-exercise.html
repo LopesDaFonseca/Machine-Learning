@@ -1,0 +1,197 @@
+<html>
+MACHINE LEARNING TO PREDICT TYPE OF EXERCISE
+<head>
+<style type="text/css">
+.knitr.inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+},
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0em 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage.left {
+  text-align: left;
+}
+.rimage.right {
+  text-align: right;
+}
+.rimage.center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+
+<title>Title</title>
+
+</head>
+<body>
+
+<p>Objective: predict the type of exercise using Random Forests algorithm, assess the model produced and predict 20 different test cases.</p>
+
+<p>Data: Weight Lifting Exercises Dataset[1] - monitor data taken from six young health participants who were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).<p>
+
+<p>[1] Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.<p>
+
+<p>Training dataset: consists of 19622 observations of 160 variables related to the individuals who performed the exercises, times and results from the monitors.<p>
+
+<p>Testing dataset: 20 observations for the same 160 variables as the training dataset.<p>
+
+<p>MACHINE LEARNING ALGORITHM: Random Forests model was chosen because it is one of the most robust models, known to obtain highly accurate predictions (small out of sample error) and requiring little data processing. Prediction uses the Caret package available for R.<p>
+
+<p>
+I - MODEL BUILDING
+<p>
+<p>1. Data Processing<p>
+
+<div class="chunk" id="unnamed-chunk-1"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">training</span><span class="hl kwb">&lt;-</span><span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;pml-training.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">header</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">)</span>
+<span class="hl std">testing</span><span class="hl kwb">&lt;-</span><span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;pml-testing.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">header</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">)</span>
+</pre></div>
+</div></div>
+<p>1.1. Data Selection<p>
+<p> Testing dataset contains many columns without any values (NAs). Thus, all columns with NAs only are first removed from the dataset. Columns related to time or window and which do not contain data from the monitors were also removed.<p>
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">testdata</span><span class="hl kwb">&lt;-</span><span class="hl std">testing[,</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">2</span><span class="hl std">,</span><span class="hl num">8</span><span class="hl opt">:</span><span class="hl num">11</span><span class="hl std">,</span><span class="hl num">37</span><span class="hl opt">:</span><span class="hl num">49</span><span class="hl std">,</span><span class="hl num">60</span><span class="hl opt">:</span><span class="hl num">68</span><span class="hl std">,</span><span class="hl num">84</span><span class="hl opt">:</span><span class="hl num">86</span><span class="hl std">,</span><span class="hl num">102</span><span class="hl std">,</span><span class="hl num">113</span><span class="hl opt">:</span><span class="hl num">124</span><span class="hl std">,</span><span class="hl num">140</span><span class="hl std">,</span><span class="hl num">151</span><span class="hl opt">:</span><span class="hl num">159</span><span class="hl std">)]</span>
+</pre></div>
+</div></div>
+
+<p>Training data is then subset to have the same columns as the test data plus the ID of the class of exercise, with the latter column header renamed to something simpler.<p>
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">data1</span><span class="hl kwb">&lt;-</span><span class="hl std">training[,</span><span class="hl kwd">names</span><span class="hl std">(testdata)]</span>
+<span class="hl std">data</span><span class="hl kwb">&lt;-</span><span class="hl kwd">cbind</span><span class="hl std">(data1,training</span><span class="hl opt">$</span><span class="hl std">classe)</span>
+<span class="hl kwd">names</span><span class="hl std">(data)</span><span class="hl kwb">&lt;-</span><span class="hl kwd">gsub</span><span class="hl std">(</span><span class="hl str">&quot;training\\$&quot;</span><span class="hl std">,</span><span class="hl str">&quot;&quot;</span><span class="hl std">,</span><span class="hl kwd">names</span><span class="hl std">(data))</span>
+</pre></div>
+</div></div>
+
+<p>1.2. Data Partition for Training and Validation of Model<p>
+<p> Training data is randomly partitioned into 60% for training and 40% for validation taking into consideration the number of observations in each class of exercise. The 60%-40% partition is commonly used for large datasets such as this one.<p>
+
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">require</span><span class="hl std">(caret)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: caret
+## Loading required package: lattice
+## Loading required package: ggplot2
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">set.seed</span><span class="hl std">(</span><span class="hl num">1759</span><span class="hl std">)</span>
+<span class="hl std">inTrain</span> <span class="hl kwb">=</span> <span class="hl kwd">createDataPartition</span><span class="hl std">(</span><span class="hl kwc">y</span><span class="hl std">=data</span><span class="hl opt">$</span><span class="hl std">classe,</span> <span class="hl kwc">p</span> <span class="hl std">=</span> <span class="hl num">0.6</span><span class="hl std">,</span><span class="hl kwc">list</span><span class="hl std">=</span><span class="hl num">FALSE</span><span class="hl std">)</span>
+<span class="hl std">train</span> <span class="hl kwb">=</span> <span class="hl std">data[inTrain,]</span>
+<span class="hl std">test</span> <span class="hl kwb">=</span> <span class="hl std">data[</span><span class="hl opt">-</span><span class="hl std">inTrain,]</span>
+</pre></div>
+</div></div>
+
+<p>2. Model Fitting<p>
+<p> A simple Random Forest model is used, called from the Caret package, using 60% of the observations available for training (11776 observations).<p>
+
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">modFit.RF<span class="hl kwd"> = train</span>(classe~., <span class="hl kwc">data</span>=train, <span class="hl kwc">method</span> = <span class="hl num">&quot;rf&quot;</span>,<span class="hl kwc">prox</span> = <span class="hl num">TRUE</span>)</span>
+</pre></div>
+</div></div>
+
+<p> 3. Model Validation<p>
+<p> Cross-Validation is performed on 40% of the observations not used for model fitting (7846 observations) <p>
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">pred.RF <span class="hl kwd">&lt;- predict</span>(<span class="hl num">modFit.RF</span>, <span class="hl num">test</span>)</span>
+<span class="hl std">test$pred.RFright<span class="hl kwd">&lt;-</span>pred.RF <span class="hl kwd"> == </span>test$classe</span>
+<span class="hl std">matrix.RF <span class="hl kwd">&lt;-confusionMatrix</span>(<span class="hl num">pred.RF</span>,<span class="hl num">test$classe</span>)</span>
+</pre></div>
+</div></div>
+
+<p> II. Results<p>
+<div class="chunk" id="unnamed-chunk-7"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">matrix.RF</span>
+</pre></div>
+</div></div>
+
+<p>Confusion Matrix and Statistics<p>
+
+          <p>Reference<p>
+<p>Prediction    A    B    C    D    E<p>
+     <p>    A 2228    9    0    0    0<p>
+        <p> B    2 1505    3    1    1<p>
+        <p> C    1    3 1357   27    3<p>
+        <p> D    0    1    8 1258    6<p>
+        <p> E    1    0    0    0 1432<p>
+<p><p>
+<p>Overall Statistics<p>
+<p><p>                                          
+               <p>Accuracy : 0.9916<p>          
+                 <p>95% CI : (0.9893, 0.9935)<p>
+    <p>No Information Rate : 0.2845          <p>
+    <p>P-Value [Acc > NIR] : < 2.2e-16       <p>
+       <p><p>                                   
+             <p>     Kappa : 0.9894          <p>
+ <p>Mcnemar's Test P-Value : NA              <p>
+<p><p>
+<p>Statistics by Class:<p>
+<p><p>
+<p>                     Class: A Class: B Class: C Class: D Class: E
+<p>Sensitivity            0.9982   0.9914   0.9920   0.9782 0.9931
+<p>Specificity            0.9984   0.9989   0.9948   0.9977 0.9998
+<p>Pos Pred Value         0.9960   0.9954   0.9756   0.9882 0.9993
+<p>Neg Pred Value         0.9993   0.9979   0.9983   0.9957 0.9984
+<p>Prevalence             0.2845   0.1935   0.1744   0.1639 0.1838
+<p>Detection Rate         0.2840   0.1918   0.1730   0.1603 0.1825
+<p>Detection Prevalence   0.2851   0.1927   0.1773   0.1622 0.1826
+<p>Balanced Accuracy      0.9983   0.9952   0.9934   0.9880 0.9965
+<p><p>
+<p> Results from Overall Statistics show that Accuracy is 0.9916. Thus, this model produced an out of sample error less than 1%. <p>
+
+<p> III. Model Prediction<p>
+<p> On the 20 test cases to be submitted<p>
+
+<div class="chunk" id="unnamed-chunk-8"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">predtest.RF <span class="hl kwd">&lt;-predict</span>(<span class="hl num">modFit.RF</span>, <span class="hl num">testdata</span>)</span>
+<span class="hl std">answers <span class="hl kwd">&lt;- </span>predtest.RF</span>
+</pre></div>
+</div></div>
+
+<p> IV. Preparation of text files for submission<p>
+<div class="chunk" id="unnamed-chunk-9"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">pml_write_files <span class="hl kwd">= function</span>(x){</span>
+<span class="hl std">  n = <span class="hl kwd">length</span>(x)</span>
+<span class="hl std">  <span class="hl kwd">for</span>(i <span class="hl kwd">in </span>1:n){</span>
+<span class="hl std">    filename <span class="hl kwd">= paste0</span>(<span class="hl str">&quot;problem_id_&quot;</span>,<span class="hl str">i</span>,<span class="hl str">&quot;.txt&quot;</span>)</span>
+<span class="hl std">    <span class="hl kwd">write.table</span>(x[i],<span class="hl kwc">file</span>=<span class="hl num">filename</span>,<span class="hl kwc">quote</span>=<span class="hl num">FALSE</span>,<span class="hl kwc">row.names</span>=<span class="hl num">FALSE</span>,<span class="hl kwc">col.names</span>=<span class="hl num">FALSE</span>)</span>
+<span class="hl std">  }</span>
+<span class="hl std">}</span>
+<span class="hl std">pml_write_files(answers)</span>
+</pre></div>
+</div></div>
+
+</body>
+</html>
